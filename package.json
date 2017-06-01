@@ -1,7 +1,7 @@
 {
-  "name": "deepstream.io-cache-memcached",
+  "name": "deepstream.io-cache-couchbase-memcached",
   "version": "1.0.0",
-  "description": "A deepstream.io cache connector for memcached",
+  "description": "A deepstream.io cache connector for memcached hosted by couchbase",
   "main": "src/connector.js",
   "scripts": {
     "test": "mocha",
@@ -11,16 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/deepstreamIO/deepstream.io-cache-memcached.git"
+    "url": "https://github.com/deepstreamIO/deepstream.io-cache-couchbase-memcached.git"
   },
   "author": "deepstreamHub GmbH",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/deepstreamIO/deepstream.io-cache-memcached/issues"
+    "url": "https://github.com/deepstreamIO/deepstream.io-cache-couchbase-memcached/issues"
   },
   "homepage": "http://deepstream.io",
   "dependencies": {
-    "memcached": "2.2.2"
+    "couchbase": "^2.3.3"
   },
   "devDependencies": {
     "chai": "^3.5.0",
