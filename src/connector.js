@@ -1,7 +1,7 @@
 'use strict'
 
 const events = require('events')
-const Memcached = require('memcached')
+const couchbase = require('couchbase');
 const pckg = require('../package.json')
 
 /**
@@ -24,16 +24,28 @@ class Connector extends events.EventEmitter {
     this.name = pckg.name
     this.version = pckg.version
     this._options = options
-    this._options.lifetime = options.lifetime || 1000
 
-    if (!this._options.serverLocation) {
-      throw new Error('Missing parameter \'serverLocation\' for memcached connector')
+    if (!this._options.host) {
+      throw new Error('Missing parameter \'host\' for couchbase connector.')
     }
 
-    this._client = new Memcached(this._options.serverLocation, this._options.memcachedOptions || {})
-    this._client.on('failure', this.emit.bind(this, 'error'))
+    var me = this;
 
-    process.nextTick(this._ready.bind(this))
+    // console.log('couchbase options: ', this._options);
+    this._cluster = new couchbase.Cluster(this._options.host);
+    this._bucket = this._cluster.openBucket(this._options.bucketname || 'deepstream', this._options.password, err => {
+      console.log('Connected? ', err);
+    });
+
+    this._bucket.on('connect', () => {
+      console.log('ready?!');
+      process.nextTick(this._ready.bind(this))
+    });
+
+    this._bucket.on('error', err => {
+      console.log('ERROR!', err);
+    });
+
   }
 
   /**
@@ -47,7 +59,11 @@ class Connector extends events.EventEmitter {
    * @returns {void}
    */
   set(key, value, callback) {
-    this._client.set(key, value, this._options.lifetime, this._onResponse.bind(this, callback))
+    var tuples = {};
+    tuples[key] = value;
+
+    this._bucket.upsert(tuples, this._onResponse.bind(this, callback));
+    //this._client.set(key, value, this._options.lifetime, this._onResponse.bind(this, callback))
   }
 
   /**
@@ -61,7 +77,18 @@ class Connector extends events.EventEmitter {
    * @returns {void}
    */
   get(key, callback) {
-    this._client.get(key, (err, value) => {
+
+    this._bucket.get(key, (err, val) => {
+      if(err)
+        return callback(err);
+
+      if(val === undefined || val[key] === undefined)
+        return callback(null, null);
+
+      callback(null, val[key]);
+    });
+
+/*    this._client.get(key, (err, value) => {
       if (err) {
         callback(err)
         return
@@ -73,6 +100,7 @@ class Connector extends events.EventEmitter {
       }
       callback(null, value)
     })
+*/
   }
 
   /**
@@ -86,7 +114,13 @@ class Connector extends events.EventEmitter {
    * @returns {void}
    */
   delete(key, callback) {
-    this._client.del(key, this._onResponse.bind(this, callback))
+    this._bucket.remove(key, (err, cas, misses) => {
+      if(err)
+        return callback(err);
+
+      callback(null);
+    });
+//    this._client.del(key, this._onResponse.bind(this, callback))
   }
 
   _ready() {
