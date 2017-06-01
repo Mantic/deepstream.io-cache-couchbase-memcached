@@ -33,17 +33,14 @@ class Connector extends events.EventEmitter {
 
     // console.log('couchbase options: ', this._options);
     this._cluster = new couchbase.Cluster(this._options.host);
-    this._bucket = this._cluster.openBucket(this._options.bucketname || 'deepstream', this._options.password, err => {
-      console.log('Connected? ', err);
-    });
+    this._bucket = this._cluster.openBucket(this._options.bucketname || 'deepstream', this._options.password);
 
     this._bucket.on('connect', () => {
-      console.log('ready?!');
       process.nextTick(this._ready.bind(this))
     });
 
     this._bucket.on('error', err => {
-      console.log('ERROR!', err);
+      this.emit('error', err);
     });
 
   }
@@ -59,10 +56,8 @@ class Connector extends events.EventEmitter {
    * @returns {void}
    */
   set(key, value, callback) {
-    var tuples = {};
-    tuples[key] = value;
 
-    this._bucket.upsert(tuples, this._onResponse.bind(this, callback));
+    this._bucket.upsert(key, value, this._onResponse.bind(this, callback));
     //this._client.set(key, value, this._options.lifetime, this._onResponse.bind(this, callback))
   }
 
